@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="theme-color" content="#1C1B19">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cobros Motor4">
+<link rel="manifest" id="manifestLink">
+<link rel="apple-touch-icon" id="appleIcon">
+<title>Seguimiento de Cobros · Motor4</title>
+<script>
+(function(){
+  var iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="#1C1B19"/><text x="96" y="124" font-family="Arial, Helvetica, sans-serif" font-size="104" font-weight="700" fill="#D9650B" text-anchor="middle">€</text></svg>';
+  var iconUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg);
+  document.getElementById('appleIcon').setAttribute('href', iconUrl);
+  var manifest = {
+    name: "Seguimiento de Cobros - Motor4",
+    short_name: "Cobros Motor4",
+    start_url: ".",
+    display: "standalone",
+    background_color: "#F2F0EB",
+    theme_color: "#1C1B19",
+    icons: [
+      {src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable"},
+      {src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable"}
+    ]
+  };
+  var blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+  document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(blob));
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F2F0EB;
+    --surface:#FFFFFF;
+    --ink:#1C1B19;
+    --ink-soft:#75716A;
+    --border:#E1DDD3;
+    --amber:#D9650B;
+    --amber-soft:#FBE6D4;
+    --green:#2F8F4E;
+    --green-soft:#DFF2E3;
+    --red:#C23B2F;
+    --red-soft:#FAE0DC;
+    --plate-blue:#0F3D8C;
+    --whatsapp:#25D366;
+    --whatsapp-soft:#DCF8C6;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding-bottom:96px;
+  }
+  #lockScreen{
+    position:fixed; inset:0; background:var(--ink); color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:200; padding:24px; text-align:center;
+  }
+  #lockScreen .lock-title{font-family:'Oswald',sans-serif;font-size:22px;text-transform:uppercase;margin-bottom:4px;}
+  #lockScreen .lock-sub{color:#C9C5BC;font-size:13px;margin-bottom:26px;}
+  #lockScreen input{
+    width:100%; max-width:280px; padding:13px; border-radius:8px; border:none;
+    font-size:16px; text-align:center; margin-bottom:10px; font-family:'Inter',sans-serif;
+  }
+  #lockScreen button{
+    width:100%; max-width:280px; padding:13px; border-radius:8px; border:none;
+    background:var(--amber); color:#fff; font-weight:600; font-size:14px; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  #lockError{color:#FF8A75;font-size:12.5px;margin-top:10px;min-height:16px;}
+
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--ink);
+    color:#fff;
+    padding:18px 16px 14px;
+  }
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  header h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:20px;
+    letter-spacing:.3px;
+    margin:0 0 2px;
+    text-transform:uppercase;
+  }
+  header p{
+    margin:0;
+    font-size:12.5px;
+    color:#C9C5BC;
+  }
+  .header-buttons{display:flex;gap:8px;flex-shrink:0;}
+  .gear-btn{
+    background:rgba(255,255,255,.12);
+    border:none;
+    color:#fff;
+    font-size:18px;
+    width:36px; height:36px;
+    border-radius:8px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .stats{
+    display:flex;
+    gap:8px;
+    padding:14px 16px 6px;
+    overflow-x:auto;
+  }
+  .stat{
+    flex:1 0 auto;
+    min-width:108px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  .stat .label{font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+  .stat .value{font-family:'Oswald',sans-serif;font-size:19px;font-weight:600;margin-top:2px;}
+  .stat.pendiente .value{color:var(--amber);}
+  .stat.cobrado .value{color:var(--green);}
+  .stat.vencido .value{color:var(--red);}
+
+  .resumen-bar{
+    margin:4px 16px 0;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:11px 14px;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width:calc(100% - 32px);
+    cursor:pointer;
+  }
+  .resumen-bar span.arrow{color:var(--amber);font-weight:700;}
+
+  .export-row{
+    display:flex;
+    gap:8px;
+    margin:8px 16px 0;
+  }
+  .btn-export{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:11px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .btn-export.excel{color:#1D6F42;}
+  .btn-export.pdf{color:#C23B2F;}
+
+  table.resumen-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    margin-top:4px;
+  }
+  table.resumen-table th{
+    text-align:left;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    color:var(--ink-soft);
+    padding:6px 4px;
+    border-bottom:2px solid var(--ink);
+  }
+  table.resumen-table td{
+    padding:9px 4px;
+    border-bottom:1px solid var(--border);
+  }
+  table.resumen-table td.num{text-align:right;font-family:'Oswald',sans-serif;font-weight:600;white-space:nowrap;}
+  table.resumen-table tr.total td{
+    border-top:2px solid var(--ink);
+    border-bottom:none;
+    font-weight:700;
+    padding-top:11px;
+  }
+  table.resumen-table tr.total td.num{color:var(--amber);}
+
+  .controls{
+    padding:10px 16px;
+    display:flex;
+    gap:8px;
+  }
+  .controls input, .controls select{
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--ink);
+  }
+  .controls input{flex:1;}
+  .controls select{flex:0 0 auto;max-width:130px;}
+  .refresh-btn{
+    flex:0 0 auto;
+    width:38px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+  }
+
+  .group{margin:14px 16px 0;}
+  .group-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:0 2px 6px;
+    border-bottom:2px solid var(--ink);
+  }
+  .group-head h2{
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    margin:0;
+  }
+  .group-head .sub{font-size:12.5px;color:var(--ink-soft);font-weight:600;}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    margin:10px 0;
+  }
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .plate{
+    display:inline-flex;
+    align-items:stretch;
+    border:1.5px solid var(--ink);
+    border-radius:4px;
+    overflow:hidden;
+    height:26px;
+    flex-shrink:0;
+  }
+  .plate-eu{
+    background:var(--plate-blue);
+    color:#fff;
+    width:13px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:7px;
+    font-weight:700;
+  }
+  .plate-num{
+    background:#fff;
+    color:var(--ink);
+    padding:0 7px;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:.5px;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+  }
+  .importe{font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;white-space:nowrap;}
+
+  .meta-row{
+    display:flex; flex-wrap:wrap; gap:6px 10px;
+    margin-top:8px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .meta-row b{color:var(--ink);font-weight:600;}
+
+  .badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:20px;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+  }
+  .badge.pendiente{background:var(--amber-soft);color:var(--amber);}
+  .badge.cobrada{background:var(--green-soft);color:var(--green);}
+  .badge.vencida{background:var(--red-soft);color:var(--red);}
+  .badge.enviada{background:#E5E9F5;color:#3955A8;}
+
+  .attach-row{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+
+  .card-actions{
+    display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    padding:7px 11px;
+    border-radius:7px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .btn.cobrar{background:var(--green-soft);color:var(--green);border-color:var(--green-soft);}
+  .btn.enviar{background:#E5E9F5;color:#3955A8;border-color:#E5E9F5;}
+  .btn.copiar{background:var(--amber-soft);color:var(--amber);border-color:var(--amber-soft);}
+  .btn.whatsapp{background:var(--whatsapp-soft);color:#075E54;border-color:var(--whatsapp-soft);}
+
+  .empty{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  .fab{
+    position:fixed;
+    right:18px; bottom:22px;
+    width:56px; height:56px;
+    border-radius:50%;
+    background:var(--amber);
+    color:#fff;
+    border:none;
+    font-size:28px;
+    line-height:56px;
+    text-align:center;
+    box-shadow:0 6px 16px rgba(217,101,11,.4);
+    cursor:pointer;
+    z-index:30;
+  }
+
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(28,27,25,.55);
+    display:none;
+    align-items:flex-end;
+    z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    background:var(--surface);
+    width:100%;
+    max-height:92vh;
+    overflow-y:auto;
+    border-radius:18px 18px 0 0;
+    padding:18px 18px 24px;
+  }
+  .sheet h3{
+    font-family:'Oswald',sans-serif;
+    font-size:17px;
+    text-transform:uppercase;
+    margin:0 0 14px;
+  }
+  .field{margin-bottom:12px;}
+  .field label{
+    display:block;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    margin-bottom:4px;
+  }
+  .field input, .field select, .field textarea{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    padding:10px 11px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--ink);
+  }
+  .field input[type="file"]{padding:8px;}
+  .row2{display:flex; gap:10px;}
+  .row2 .field{flex:1;}
+  .sheet-actions{
+    display:flex; gap:8px; margin-top:18px;
+  }
+  .sheet-actions .btn{flex:1; padding:12px; text-align:center; font-size:13.5px;}
+  .btn.delete{background:var(--red-soft);color:var(--red);border-color:var(--red-soft);}
+
+  .chip-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:9px 11px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    margin-bottom:6px;
+    font-size:13.5px;
+  }
+  .chip-row button{
+    background:none;
+    border:none;
+    color:var(--red);
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    padding:0 4px;
+  }
+  .ajustes-empty{color:var(--ink-soft);font-size:12.5px;padding:4px 2px;}
+
+  .cliente-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 11px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    margin-bottom:6px;
+  }
+  .cliente-row .cliente-nombre{flex:1;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cliente-row .cliente-dias{
+    display:flex; align-items:center; gap:4px;
+    flex-shrink:0;
+    font-size:11.5px;
+    color:var(--ink-soft);
+  }
+  .cliente-row .cliente-dias input{
+    width:42px;
+    padding:5px 6px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    font-size:13px;
+    text-align:center;
+  }
+  .cliente-row button{
+    background:none; border:none; color:var(--red);
+    font-size:16px; font-weight:700; cursor:pointer; padding:0 2px; flex-shrink:0;
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lock-title">Seguimiento de Cobros</div>
+  <div class="lock-sub">Motor4 Automoción</div>
+  <input id="lockPassword" type="password" placeholder="Contraseña" autocomplete="off">
+  <button onclick="checkPassword()">Entrar</button>
+  <div id="lockError"></div>
+</div>
+
+<div id="appRoot" style="display:none;">
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Seguimiento de Cobros</h1>
+      <p>Clientes flota / organismos · Motor4 Automoción</p>
+    </div>
+    <div class="header-buttons">
+      <button class="gear-btn" onclick="openAjustes()" title="Ajustes">⚙️</button>
+    </div>
+  </div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<button class="resumen-bar" onclick="openResumen('empresa')">
+  <span>📊 Resumen por empresa</span>
+  <span class="arrow">→</span>
+</button>
+<button class="resumen-bar" onclick="openResumen('cliente')">
+  <span>👥 Resumen por cliente</span>
+  <span class="arrow">→</span>
+</button>
+
+<div class="export-row">
+  <button class="btn-export excel" onclick="exportExcel()">⬇️ Excel</button>
+  <button class="btn-export pdf" onclick="exportPDF()">⬇️ PDF</button>
+</div>
+
+<div class="controls">
+  <input id="search" type="text" placeholder="Buscar matrícula o cliente...">
+  <select id="filterEstado">
+    <option value="">Todos</option>
+    <option value="pendiente">Pendiente</option>
+    <option value="enviada">Enviada</option>
+    <option value="vencida">Vencida</option>
+    <option value="cobrada">Cobrada</option>
+  </select>
+  <button class="refresh-btn" onclick="refrescarDatos()" title="Actualizar">🔄</button>
+</div>
+
+<div id="list"></div>
+
+<button class="fab" onclick="openForm()">+</button>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h3 id="formTitle">Nueva factura</h3>
+    <input type="hidden" id="f_id">
+    <div class="row2">
+      <div class="field">
+        <label>Matrícula</label>
+        <input id="f_matricula" type="text" placeholder="0000ABC" style="text-transform:uppercase;">
+      </div>
+      <div class="field">
+        <label>Nº Orden</label>
+        <input id="f_orden" type="text">
+      </div>
+    </div>
+    <div class="field">
+      <label>Cliente</label>
+      <select id="f_cliente_select" onchange="handleClienteChange()"></select>
+      <input id="f_cliente" type="text" placeholder="Nombre del cliente" style="margin-top:6px;display:none;">
+    </div>
+    <div class="field">
+      <label>Facturar con</label>
+      <select id="f_facturarcon_select" onchange="handleFacturarConChange()">
+        <option value="">Sin asignar</option>
+        <option value="__otro__">+ Otra empresa...</option>
+      </select>
+      <input id="f_facturarcon" type="text" placeholder="Nombre de la empresa" style="margin-top:6px;display:none;">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Nº Factura</label>
+        <input id="f_numfactura" type="text">
+      </div>
+      <div class="field">
+        <label>Nº FacturaE</label>
+        <input id="f_facturae" type="text" placeholder="Factura electrónica (FACe)">
+      </div>
+    </div>
+    <div class="field">
+      <label>Importe (€)</label>
+      <input id="f_importe" type="number" step="0.01" inputmode="decimal">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Fecha factura</label>
+        <input id="f_fechafactura" type="date">
+      </div>
+      <div class="field">
+        <label>Vencimiento estimado</label>
+        <input id="f_fechavencimiento" type="date">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Fecha envío</label>
+        <input id="f_fechaenvio" type="date">
+      </div>
+      <div class="field">
+        <label>Fecha cobro</label>
+        <input id="f_fechacobro" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label>Adjuntar presupuesto (PDF o foto)</label>
+      <input id="f_presupuesto_file" type="file" accept="application/pdf,image/*">
+      <div id="presupuestoPreview" style="margin-top:6px;font-size:12.5px;"></div>
+    </div>
+    <div class="field">
+      <label>Adjuntar factura (PDF o foto)</label>
+      <input id="f_factura_file" type="file" accept="application/pdf,image/*">
+      <div id="facturaPreview" style="margin-top:6px;font-size:12.5px;"></div>
+    </div>
+    <div class="field">
+      <label>Notas</label>
+      <textarea id="f_notas" rows="2"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn delete" id="btnDelete" onclick="deleteEntry()" style="display:none;">Eliminar</button>
+      <button class="btn" onclick="closeForm()">Cancelar</button>
+      <button class="btn primary" onclick="saveEntry()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayResumen">
+  <div class="sheet">
+    <h3 id="resumenTitle">Resumen</h3>
+    <div id="resumenContent"></div>
+    <div class="sheet-actions">
+      <button class="btn primary" style="flex:1;" onclick="closeResumen()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayAjustes">
+  <div class="sheet">
+    <h3>Ajustes</h3>
+    <div class="field">
+      <label>Empresas para facturar</label>
+      <div id="empresasList"></div>
+      <div class="row2" style="margin-top:8px;">
+        <input id="nuevaEmpresa" type="text" placeholder="Nueva empresa...">
+        <button class="btn primary" style="flex:0 0 auto;" onclick="addEmpresa()">Añadir</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:20px;">
+      <label>Clientes y plazo de pago</label>
+      <div id="clientesList"></div>
+      <div class="row2" style="margin-top:8px;">
+        <input id="nuevoCliente" type="text" placeholder="Nuevo cliente...">
+        <input id="nuevoClienteDias" type="number" min="1" value="60" style="max-width:64px;flex:0 0 auto;">
+        <button class="btn primary" style="flex:0 0 auto;" onclick="addCliente()">Añadir</button>
+      </div>
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;">Días para añadir junto al cliente nuevo: cuántos días tarda en pagar.</div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:18px;" onclick="importarLocal()">📤 Importar datos guardados en este móvil</button>
+    <div class="sheet-actions">
+      <button class="btn primary" style="flex:1;" onclick="closeAjustes()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* ======== Conexión Supabase ======== */
+const SUPABASE_URL = 'https://zfkdxjbzzapebluonvcm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpma2R4amJ6emFwZWJsdW9udmNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MDkyMTUsImV4cCI6MjA5NTE4NTIxNX0.QdYsyqZeRFJy789HqkzNWqMFOmGJobFZMTnk_9aP7sA';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const BUCKET = 'cobros-adjuntos';
+
+/* ======== Contraseña de acceso ======== */
+/* David: cambia este valor si quieres otra contraseña */
+const APP_PASSWORD = 'motor4taller';
+
+function checkPassword(){
+  const val = document.getElementById('lockPassword').value;
+  if(val === APP_PASSWORD){
+    localStorage.setItem('cobros_auth_ok', '1');
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('lockError').textContent = 'Contraseña incorrecta';
+  }
+}
+document.getElementById('lockPassword').addEventListener('keydown', function(e){ if(e.key==='Enter') checkPassword(); });
+
+const DIAS_VENCIMIENTO = 60;
+const OLD_STORAGE_KEY = 'motor4_cobros_v1';
+const OLD_EMPRESAS_KEY = 'motor4_cobros_empresas_v1';
+const OLD_CLIENTES_KEY = 'motor4_cobros_clientes_v1';
+
+let empresas = [];
+let clientes = [];
+let data = [];
+
+function newId(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+    var r = Math.random()*16|0, v = c==='x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+
+/* ======== Capa de datos: Supabase ======== */
+async function fetchClientes(){
+  const { data: rows, error } = await sb.from('cobros_clientes').select('*').order('nombre');
+  if(error){ console.error(error); return []; }
+  return (rows||[]).map(r=>({nombre:r.nombre, diasPago:r.dias_pago}));
+}
+async function fetchEmpresas(){
+  const { data: rows, error } = await sb.from('cobros_empresas').select('*').order('nombre');
+  if(error){ console.error(error); return []; }
+  return (rows||[]).map(r=>r.nombre);
+}
+async function fetchFacturas(){
+  const { data: rows, error } = await sb.from('cobros_facturas').select('*').order('created_at', {ascending:false});
+  if(error){ console.error(error); return []; }
+  return (rows||[]).map(r=>({
+    id: r.id,
+    matricula: r.matricula||'',
+    cliente: r.cliente||'',
+    facturarcon: r.facturar_con||'',
+    orden: r.num_orden||'',
+    numfactura: r.num_factura||'',
+    facturae: r.factura_e||'',
+    importe: Number(r.importe)||0,
+    fechafactura: r.fecha_factura||'',
+    fechavencimiento: r.fecha_vencimiento||'',
+    fechaenvio: r.fecha_envio||'',
+    fechacobro: r.fecha_cobro||'',
+    notas: r.notas||'',
+    presupuestoMeta: r.presupuesto_path ? {name:r.presupuesto_nombre, path:r.presupuesto_path} : null,
+    facturaMeta: r.factura_path ? {name:r.factura_nombre, path:r.factura_path} : null
+  }));
+}
+async function dbUpsertCliente(nombre, diasPago){
+  const { error } = await sb.from('cobros_clientes').upsert({nombre, dias_pago: diasPago}, {onConflict:'nombre'});
+  if(error) console.error(error);
+}
+async function dbUpdateClienteDias(nombre, diasPago){
+  const { error } = await sb.from('cobros_clientes').update({dias_pago:diasPago}).eq('nombre', nombre);
+  if(error) console.error(error);
+}
+async function dbDeleteCliente(nombre){
+  const { error } = await sb.from('cobros_clientes').delete().eq('nombre', nombre);
+  if(error) console.error(error);
+}
+async function dbUpsertEmpresa(nombre){
+  const { error } = await sb.from('cobros_empresas').upsert({nombre}, {onConflict:'nombre'});
+  if(error) console.error(error);
+}
+async function dbDeleteEmpresa(nombre){
+  const { error } = await sb.from('cobros_empresas').delete().eq('nombre', nombre);
+  if(error) console.error(error);
+}
+function entryToRow(entry){
+  return {
+    matricula: entry.matricula,
+    cliente: entry.cliente,
+    facturar_con: entry.facturarcon || null,
+    num_orden: entry.orden || null,
+    num_factura: entry.numfactura || null,
+    factura_e: entry.facturae || null,
+    importe: entry.importe || 0,
+    fecha_factura: entry.fechafactura || null,
+    fecha_vencimiento: entry.fechavencimiento || null,
+    fecha_envio: entry.fechaenvio || null,
+    fecha_cobro: entry.fechacobro || null,
+    notas: entry.notas || null,
+    presupuesto_path: entry.presupuestoMeta ? entry.presupuestoMeta.path : null,
+    presupuesto_nombre: entry.presupuestoMeta ? entry.presupuestoMeta.name : null,
+    factura_path: entry.facturaMeta ? entry.facturaMeta.path : null,
+    factura_nombre: entry.facturaMeta ? entry.facturaMeta.name : null,
+    updated_at: new Date().toISOString()
+  };
+}
+async function dbSaveFactura(entry, isNew){
+  const row = entryToRow(entry);
+  if(isNew){
+    row.id = entry.id;
+    const { error } = await sb.from('cobros_facturas').insert(row);
+    if(error){ console.error(error); alert('Error al guardar en la base de datos: '+error.message); }
+  } else {
+    const { error } = await sb.from('cobros_facturas').update(row).eq('id', entry.id);
+    if(error){ console.error(error); alert('Error al guardar en la base de datos: '+error.message); }
+  }
+}
+async function dbDeleteFactura(id){
+  const { error } = await sb.from('cobros_facturas').delete().eq('id', id);
+  if(error) console.error(error);
+}
+async function uploadAttachment(entryId, tipo, file){
+  const ext = (file.name.split('.').pop()||'dat').replace(/[^a-zA-Z0-9]/g,'');
+  const path = `${entryId}/${tipo}-${Date.now()}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, {upsert:true});
+  if(error){ console.error(error); alert('Error al subir el archivo: '+error.message); return null; }
+  return path;
+}
+function getPublicUrl(path){
+  const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+  return pub.publicUrl;
+}
+async function deleteAttachmentStorage(path){
+  if(!path) return;
+  const { error } = await sb.storage.from(BUCKET).remove([path]);
+  if(error) console.error(error);
+}
+
+function clienteExiste(nombre){ return clientes.some(c=>c.nombre===nombre); }
+function diasPagoForCliente(nombre){
+  const c = clientes.find(x=>x.nombre===nombre);
+  return c ? (parseInt(c.diasPago)||DIAS_VENCIMIENTO) : DIAS_VENCIMIENTO;
+}
+
+function populateSelects(){
+  const selE = document.getElementById('f_facturarcon_select');
+  const currentE = selE.value;
+  selE.innerHTML = '<option value="">Sin asignar</option>' +
+    empresas.map(e=>`<option value="${e}">${e}</option>`).join('') +
+    '<option value="__otro__">+ Otra empresa...</option>';
+  if(currentE) selE.value = currentE;
+
+  const selC = document.getElementById('f_cliente_select');
+  const currentC = selC.value;
+  selC.innerHTML = '<option value="">Selecciona cliente...</option>' +
+    clientes.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('') +
+    '<option value="__otro__">+ Otro cliente...</option>';
+  if(currentC) selC.value = currentC;
+}
+
+function handleFacturarConChange(){
+  const sel = document.getElementById('f_facturarcon_select');
+  const txt = document.getElementById('f_facturarcon');
+  if(sel.value === '__otro__'){ txt.style.display='block'; txt.value=''; txt.focus(); }
+  else { txt.style.display='none'; txt.value = sel.value; }
+}
+function handleClienteChange(){
+  const sel = document.getElementById('f_cliente_select');
+  const txt = document.getElementById('f_cliente');
+  if(sel.value === '__otro__'){ txt.style.display='block'; txt.value=''; txt.focus(); }
+  else { txt.style.display='none'; txt.value = sel.value; }
+  maybeAutoFillVencimiento();
+}
+function maybeAutoFillVencimiento(){
+  const fechaFactura = document.getElementById('f_fechafactura').value;
+  const vencField = document.getElementById('f_fechavencimiento');
+  if(!fechaFactura || vencField.value) return;
+  const selC = document.getElementById('f_cliente_select').value;
+  const clienteNombre = selC === '__otro__' ? document.getElementById('f_cliente').value.trim() : selC;
+  vencField.value = addDays(fechaFactura, diasPagoForCliente(clienteNombre));
+}
+
+/* ======== Ajustes ======== */
+function renderAjustes(){
+  document.getElementById('empresasList').innerHTML = empresas.length ? empresas.map((e,i)=>`
+    <div class="chip-row"><span>${e}</span><button onclick="removeEmpresa(${i})">✕</button></div>
+  `).join('') : '<div class="ajustes-empty">Sin empresas guardadas.</div>';
+
+  document.getElementById('clientesList').innerHTML = clientes.length ? clientes.map((c,i)=>`
+    <div class="cliente-row">
+      <span class="cliente-nombre">${c.nombre}</span>
+      <span class="cliente-dias"><input type="number" min="1" value="${c.diasPago}" onchange="updateDiasPago(${i}, this.value)"> días</span>
+      <button onclick="removeCliente(${i})">✕</button>
+    </div>
+  `).join('') : '<div class="ajustes-empty">Sin clientes guardados.</div>';
+}
+function openAjustes(){ renderAjustes(); document.getElementById('overlayAjustes').classList.add('show'); }
+function closeAjustes(){ document.getElementById('overlayAjustes').classList.remove('show'); }
+async function addEmpresa(){
+  const input = document.getElementById('nuevaEmpresa');
+  const v = input.value.trim();
+  if(!v) return;
+  if(empresas.includes(v)){ alert('Esa empresa ya está en la lista.'); return; }
+  await dbUpsertEmpresa(v);
+  empresas.push(v); input.value=''; renderAjustes(); populateSelects();
+}
+async function removeEmpresa(i){
+  if(!confirm('¿Eliminar esta empresa de la lista? Las facturas ya guardadas con este nombre no se modifican.')) return;
+  await dbDeleteEmpresa(empresas[i]);
+  empresas.splice(i,1); renderAjustes(); populateSelects();
+}
+async function addCliente(){
+  const input = document.getElementById('nuevoCliente');
+  const diasInput = document.getElementById('nuevoClienteDias');
+  const v = input.value.trim();
+  if(!v) return;
+  if(clienteExiste(v)){ alert('Ese cliente ya está en la lista.'); return; }
+  const dias = parseInt(diasInput.value) || DIAS_VENCIMIENTO;
+  await dbUpsertCliente(v, dias);
+  clientes.push({nombre:v, diasPago:dias});
+  input.value=''; diasInput.value='60'; renderAjustes(); populateSelects();
+}
+async function removeCliente(i){
+  if(!confirm('¿Eliminar este cliente de la lista? Las facturas ya guardadas con este nombre no se modifican.')) return;
+  await dbDeleteCliente(clientes[i].nombre);
+  clientes.splice(i,1); renderAjustes(); populateSelects();
+}
+async function updateDiasPago(i, value){
+  const v = parseInt(value);
+  const dias = (v && v>0) ? v : DIAS_VENCIMIENTO;
+  clientes[i].diasPago = dias;
+  await dbUpdateClienteDias(clientes[i].nombre, dias);
+  render();
+}
+document.getElementById('overlayAjustes').addEventListener('click', function(e){ if(e.target===this) closeAjustes(); });
+
+async function importarLocal(){
+  const rawFacturas = localStorage.getItem(OLD_STORAGE_KEY);
+  const rawClientes = localStorage.getItem(OLD_CLIENTES_KEY);
+  const rawEmpresas = localStorage.getItem(OLD_EMPRESAS_KEY);
+  if(!rawFacturas && !rawClientes && !rawEmpresas){
+    alert('No se han encontrado datos guardados en este móvil.');
+    return;
+  }
+  if(!confirm('Esto subirá a la base de datos compartida los datos guardados en este móvil. Los archivos adjuntos (PDF/fotos) no se migran automáticamente, tendrás que volver a subirlos. ¿Continuar?')) return;
+
+  if(rawClientes){
+    let arr = JSON.parse(rawClientes);
+    if(arr.length && typeof arr[0]==='string') arr = arr.map(n=>({nombre:n, diasPago:60}));
+    for(const c of arr){
+      await dbUpsertCliente(c.nombre, c.diasPago||60);
+      if(!clienteExiste(c.nombre)) clientes.push(c);
+    }
+  }
+  if(rawEmpresas){
+    const arr = JSON.parse(rawEmpresas);
+    for(const nombre of arr){
+      await dbUpsertEmpresa(nombre);
+      if(!empresas.includes(nombre)) empresas.push(nombre);
+    }
+  }
+  if(rawFacturas){
+    const arr = JSON.parse(rawFacturas);
+    for(const old of arr){
+      const entry = {
+        id: newId(),
+        matricula: old.matricula||'',
+        cliente: old.cliente||'',
+        facturarcon: old.facturarcon||'',
+        orden: old.orden||'',
+        numfactura: old.numfactura||'',
+        facturae: old.facturae||'',
+        importe: Number(old.importe)||0,
+        fechafactura: old.fechafactura||'',
+        fechavencimiento: old.fechavencimiento||'',
+        fechaenvio: old.fechaenvio||'',
+        fechacobro: old.fechacobro||'',
+        notas: old.notas||'',
+        presupuestoMeta: null,
+        facturaMeta: null
+      };
+      await dbSaveFactura(entry, true);
+      data.push(entry);
+    }
+  }
+  alert('Importación completada.');
+  renderAjustes();
+  populateSelects();
+  render();
+}
+
+/* ======== Helpers de fecha / formato ======== */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function addDays(dateStr, days){
+  const d = new Date(dateStr);
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+function daysBetween(a,b){ return Math.floor((new Date(b) - new Date(a)) / 86400000); }
+function fmtMoney(n){ return (Number(n)||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+function fmtDate(s){
+  if(!s) return '—';
+  const [y,m,d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function getEstado(e){
+  if(e.fechacobro) return 'cobrada';
+  if(e.fechafactura){
+    const dias = diasPagoForCliente(e.cliente);
+    const venc = e.fechavencimiento || addDays(e.fechafactura, dias);
+    if(todayStr() > venc) return 'vencida';
+  }
+  if(e.fechaenvio) return 'enviada';
+  return 'pendiente';
+}
+function getDiasPendientes(e){
+  if(!e.fechafactura) return null;
+  const end = e.fechacobro || todayStr();
+  return daysBetween(e.fechafactura, end);
+}
+
+function renderStats(){
+  let pendiente=0, cobrado=0, vencido=0, vencidoCount=0;
+  data.forEach(e=>{
+    const est = getEstado(e);
+    if(est==='cobrada') cobrado += Number(e.importe)||0;
+    else pendiente += Number(e.importe)||0;
+    if(est==='vencida'){ vencido += Number(e.importe)||0; vencidoCount++; }
+  });
+  document.getElementById('stats').innerHTML = `
+    <div class="stat pendiente"><div class="label">Pendiente</div><div class="value">${fmtMoney(pendiente)}</div></div>
+    <div class="stat cobrado"><div class="label">Cobrado</div><div class="value">${fmtMoney(cobrado)}</div></div>
+    <div class="stat vencido"><div class="label">Vencido (${vencidoCount})</div><div class="value">${fmtMoney(vencido)}</div></div>
+  `;
+}
+
+function plateHtml(m){
+  return `<span class="plate"><span class="plate-eu">E</span><span class="plate-num">${m||'—'}</span></span>`;
+}
+
+function buildAvisoTexto(e){
+  const dias = getDiasPendientes(e);
+  return `Aviso de pago — Motor4 Automoción\nMatrícula: ${e.matricula}\nCliente: ${e.cliente}\nFactura: ${e.numfactura||'-'}\nFacturaE: ${e.facturae||'-'}\nImporte: ${fmtMoney(e.importe)}\nFecha factura: ${fmtDate(e.fechafactura)}\n${dias!==null ? `Días pendientes: ${dias}` : ''}\nQuedamos a la espera del pago. Gracias.`;
+}
+
+function cardHtml(e){
+  const est = getEstado(e);
+  const dias = getDiasPendientes(e);
+  const diasTxt = dias===null ? 'sin fecha factura' : (est==='cobrada' ? `cobrada en ${dias} días` : `${dias} días pendiente`);
+  const adjuntos = (e.presupuestoMeta || e.facturaMeta) ? `
+    <div class="attach-row">
+      ${e.presupuestoMeta ? `<button class="btn" onclick="verAdjuntoCard('${e.id}','presupuesto')">📄 Presupuesto</button>` : ''}
+      ${e.facturaMeta ? `<button class="btn" onclick="verAdjuntoCard('${e.id}','factura')">🧾 Factura adjunta</button>` : ''}
+    </div>` : '';
+  return `
+  <div class="card" data-id="${e.id}">
+    <div class="card-top">
+      ${plateHtml(e.matricula)}
+      <div class="importe">${fmtMoney(e.importe)}</div>
+    </div>
+    <div class="meta-row">
+      <span class="badge ${est}">${est}</span>
+      <span>${diasTxt}</span>
+    </div>
+    <div class="meta-row">
+      <span><b>Nº Factura:</b> ${e.numfactura || '—'}</span>
+      <span><b>Nº FacturaE:</b> ${e.facturae || '—'}</span>
+      ${e.facturarcon ? `<span><b>Facturar con:</b> ${e.facturarcon}</span>` : '<span style="color:var(--red);font-weight:600;">Sin asignar facturación</span>'}
+    </div>
+    <div class="meta-row">
+      <span><b>Factura:</b> ${fmtDate(e.fechafactura)}</span>
+      <span><b>Envío:</b> ${fmtDate(e.fechaenvio)}</span>
+      <span><b>Cobro:</b> ${fmtDate(e.fechacobro)}</span>
+    </div>
+    ${adjuntos}
+    <div class="card-actions">
+      ${est!=='cobrada' && !e.fechaenvio ? `<button class="btn enviar" onclick="markEnviada('${e.id}')">Marcar enviada</button>` : ''}
+      ${est!=='cobrada' ? `<button class="btn cobrar" onclick="markCobrada('${e.id}')">Marcar cobrada</button>` : ''}
+      <button class="btn whatsapp" onclick="enviarWhatsapp('${e.id}')">💬 WhatsApp</button>
+      <button class="btn copiar" onclick="copiarAviso('${e.id}')">Copiar aviso</button>
+      <button class="btn" onclick="openForm('${e.id}')">Editar</button>
+    </div>
+  </div>`;
+}
+
+function render(){
+  renderStats();
+  const search = document.getElementById('search').value.trim().toLowerCase();
+  const filterEstado = document.getElementById('filterEstado').value;
+
+  let filtered = data.filter(e=>{
+    if(filterEstado && getEstado(e)!==filterEstado) return false;
+    if(search){
+      const hay = (e.matricula+' '+e.cliente+' '+e.facturarcon).toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  if(filtered.length===0){
+    document.getElementById('list').innerHTML = `<div class="empty">No hay facturas que coincidan.<br>Toca + para añadir una.</div>`;
+    return;
+  }
+
+  const groups = {};
+  filtered.forEach(e=>{
+    const k = e.cliente || 'Sin cliente';
+    if(!groups[k]) groups[k]=[];
+    groups[k].push(e);
+  });
+
+  let html='';
+  Object.keys(groups).sort().forEach(cliente=>{
+    const items = groups[cliente].sort((a,b)=>{
+      const da = getDiasPendientes(a) ?? -1;
+      const db = getDiasPendientes(b) ?? -1;
+      return db-da;
+    });
+    const subtotal = items.reduce((s,e)=> getEstado(e)!=='cobrada' ? s+(Number(e.importe)||0) : s, 0);
+    html += `<div class="group">
+      <div class="group-head"><h2>${cliente}</h2><span class="sub">Pendiente: ${fmtMoney(subtotal)}</span></div>
+      ${items.map(cardHtml).join('')}
+    </div>`;
+  });
+  document.getElementById('list').innerHTML = html;
+}
+
+async function markEnviada(id){
+  const e = data.find(x=>x.id===id);
+  e.fechaenvio = todayStr();
+  await dbSaveFactura(e, false);
+  render();
+}
+async function markCobrada(id){
+  const e = data.find(x=>x.id===id);
+  e.fechacobro = todayStr();
+  await dbSaveFactura(e, false);
+  render();
+}
+function copiarAviso(id){
+  const e = data.find(x=>x.id===id);
+  const texto = buildAvisoTexto(e);
+  navigator.clipboard.writeText(texto).then(()=>{
+    alert('Aviso copiado. Puedes pegarlo en WhatsApp o email.');
+  }).catch(()=>{
+    prompt('Copia el texto manualmente:', texto);
+  });
+}
+function enviarWhatsapp(id){
+  const e = data.find(x=>x.id===id);
+  const texto = buildAvisoTexto(e);
+  const url = 'https://wa.me/?text=' + encodeURIComponent(texto);
+  window.open(url, '_blank');
+}
+function verAdjuntoCard(id, tipo){
+  const e = data.find(x=>x.id===id);
+  const meta = tipo==='presupuesto' ? e.presupuestoMeta : e.facturaMeta;
+  if(meta && meta.path){ window.open(getPublicUrl(meta.path), '_blank'); }
+  else { alert('No se pudo abrir el archivo.'); }
+}
+
+/* ======== Formulario ======== */
+let formPresupuestoMeta = null;
+let formFacturaMeta = null;
+let formPresupuestoMetaOriginal = null;
+let formFacturaMetaOriginal = null;
+let formPresupuestoRemoved = false;
+let formFacturaRemoved = false;
+
+function renderAttachmentPreview(tipo, meta){
+  const previewEl = document.getElementById(tipo+'Preview');
+  if(meta){
+    previewEl.innerHTML = `📎 ${meta.name} <button type="button" class="btn" style="padding:3px 8px;font-size:11px;margin-left:4px;" onclick="verAdjuntoForm('${tipo}')">Ver</button> <button type="button" class="btn" style="padding:3px 8px;font-size:11px;margin-left:4px;color:var(--red);" onclick="quitarAdjuntoForm('${tipo}')">Quitar</button>`;
+  } else {
+    previewEl.innerHTML = '';
+  }
+}
+function verAdjuntoForm(tipo){
+  const meta = tipo==='presupuesto' ? formPresupuestoMeta : formFacturaMeta;
+  if(meta && meta.path){ window.open(getPublicUrl(meta.path), '_blank'); }
+}
+function quitarAdjuntoForm(tipo){
+  if(tipo==='presupuesto'){ formPresupuestoMeta=null; formPresupuestoRemoved=true; }
+  else { formFacturaMeta=null; formFacturaRemoved=true; }
+  renderAttachmentPreview(tipo, null);
+}
+document.getElementById('f_presupuesto_file').addEventListener('change', function(){
+  const f = this.files[0];
+  if(f){ formPresupuestoRemoved=false; document.getElementById('presupuestoPreview').innerHTML = `<span style="color:var(--ink);">📎 Se guardará: ${f.name}</span>`; }
+});
+document.getElementById('f_factura_file').addEventListener('change', function(){
+  const f = this.files[0];
+  if(f){ formFacturaRemoved=false; document.getElementById('facturaPreview').innerHTML = `<span style="color:var(--ink);">📎 Se guardará: ${f.name}</span>`; }
+});
+
+function openForm(id){
+  populateSelects();
+  document.getElementById('btnDelete').style.display = id ? 'block' : 'none';
+  document.getElementById('f_presupuesto_file').value = '';
+  document.getElementById('f_factura_file').value = '';
+  formPresupuestoRemoved = false;
+  formFacturaRemoved = false;
+
+  if(id){
+    const e = data.find(x=>x.id===id);
+    document.getElementById('formTitle').textContent = 'Editar factura';
+    document.getElementById('f_id').value = e.id;
+    document.getElementById('f_matricula').value = e.matricula||'';
+    document.getElementById('f_orden').value = e.orden||'';
+
+    const selC = document.getElementById('f_cliente_select');
+    const txtC = document.getElementById('f_cliente');
+    if(e.cliente && clienteExiste(e.cliente)){ selC.value=e.cliente; txtC.style.display='none'; txtC.value=e.cliente; }
+    else if(e.cliente){ selC.value='__otro__'; txtC.style.display='block'; txtC.value=e.cliente; }
+    else { selC.value=''; txtC.style.display='none'; txtC.value=''; }
+
+    const sel = document.getElementById('f_facturarcon_select');
+    const txt = document.getElementById('f_facturarcon');
+    if(e.facturarcon && empresas.includes(e.facturarcon)){ sel.value=e.facturarcon; txt.style.display='none'; txt.value=e.facturarcon; }
+    else if(e.facturarcon){ sel.value='__otro__'; txt.style.display='block'; txt.value=e.facturarcon; }
+    else { sel.value=''; txt.style.display='none'; txt.value=''; }
+
+    document.getElementById('f_numfactura').value = e.numfactura||'';
+    document.getElementById('f_facturae').value = e.facturae||'';
+    document.getElementById('f_importe').value = e.importe||'';
+    document.getElementById('f_fechafactura').value = e.fechafactura||'';
+    document.getElementById('f_fechavencimiento').value = e.fechavencimiento||'';
+    document.getElementById('f_fechaenvio').value = e.fechaenvio||'';
+    document.getElementById('f_fechacobro').value = e.fechacobro||'';
+    document.getElementById('f_notas').value = e.notas||'';
+
+    formPresupuestoMeta = e.presupuestoMeta || null;
+    formFacturaMeta = e.facturaMeta || null;
+    formPresupuestoMetaOriginal = e.presupuestoMeta || null;
+    formFacturaMetaOriginal = e.facturaMeta || null;
+    renderAttachmentPreview('presupuesto', formPresupuestoMeta);
+    renderAttachmentPreview('factura', formFacturaMeta);
+  } else {
+    document.getElementById('formTitle').textContent = 'Nueva factura';
+    ['f_id','f_matricula','f_orden','f_cliente','f_facturarcon','f_numfactura','f_facturae','f_importe','f_fechafactura','f_fechavencimiento','f_fechaenvio','f_fechacobro','f_notas'].forEach(fid=>document.getElementById(fid).value='');
+    document.getElementById('f_facturarcon_select').value = '';
+    document.getElementById('f_facturarcon').style.display = 'none';
+    document.getElementById('f_cliente_select').value = '';
+    document.getElementById('f_cliente').style.display = 'none';
+    formPresupuestoMeta = null;
+    formFacturaMeta = null;
+    formPresupuestoMetaOriginal = null;
+    formFacturaMetaOriginal = null;
+    document.getElementById('presupuestoPreview').innerHTML = '';
+    document.getElementById('facturaPreview').innerHTML = '';
+  }
+  document.getElementById('overlay').classList.add('show');
+}
+function closeForm(){ document.getElementById('overlay').classList.remove('show'); }
+
+document.getElementById('f_fechafactura').addEventListener('change', maybeAutoFillVencimiento);
+
+async function saveEntry(){
+  const id = document.getElementById('f_id').value;
+  const isNew = !id;
+  const sel = document.getElementById('f_facturarcon_select').value;
+  const facturarcon = sel === '__otro__' ? document.getElementById('f_facturarcon').value.trim() : sel;
+  const selC = document.getElementById('f_cliente_select').value;
+  const cliente = selC === '__otro__' ? document.getElementById('f_cliente').value.trim() : selC;
+  const matricula = document.getElementById('f_matricula').value.trim().toUpperCase();
+
+  if(!matricula){ alert('Indica la matrícula.'); return; }
+  if(!cliente){ alert('Selecciona o añade un cliente.'); return; }
+
+  const entryId = isNew ? newId() : id;
+
+  if(cliente && !clienteExiste(cliente)){
+    clientes.push({nombre:cliente, diasPago:DIAS_VENCIMIENTO});
+    await dbUpsertCliente(cliente, DIAS_VENCIMIENTO);
+  }
+  if(facturarcon && !empresas.includes(facturarcon)){
+    empresas.push(facturarcon);
+    await dbUpsertEmpresa(facturarcon);
+  }
+
+  if(formPresupuestoRemoved && formPresupuestoMetaOriginal && formPresupuestoMetaOriginal.path){
+    await deleteAttachmentStorage(formPresupuestoMetaOriginal.path);
+  }
+  if(formFacturaRemoved && formFacturaMetaOriginal && formFacturaMetaOriginal.path){
+    await deleteAttachmentStorage(formFacturaMetaOriginal.path);
+  }
+
+  let presupuestoMeta = formPresupuestoRemoved ? null : formPresupuestoMeta;
+  let facturaMeta = formFacturaRemoved ? null : formFacturaMeta;
+
+  const presupuestoFile = document.getElementById('f_presupuesto_file').files[0];
+  const facturaFile = document.getElementById('f_factura_file').files[0];
+
+  if(presupuestoFile){
+    const path = await uploadAttachment(entryId, 'presupuesto', presupuestoFile);
+    if(path) presupuestoMeta = {name:presupuestoFile.name, path};
+  }
+  if(facturaFile){
+    const path = await uploadAttachment(entryId, 'factura', facturaFile);
+    if(path) facturaMeta = {name:facturaFile.name, path};
+  }
+
+  const entry = {
+    id: entryId,
+    matricula: matricula,
+    orden: document.getElementById('f_orden').value.trim(),
+    cliente: cliente,
+    facturarcon: facturarcon,
+    numfactura: document.getElementById('f_numfactura').value.trim(),
+    facturae: document.getElementById('f_facturae').value.trim(),
+    importe: parseFloat(document.getElementById('f_importe').value)||0,
+    fechafactura: document.getElementById('f_fechafactura').value,
+    fechavencimiento: document.getElementById('f_fechavencimiento').value,
+    fechaenvio: document.getElementById('f_fechaenvio').value,
+    fechacobro: document.getElementById('f_fechacobro').value,
+    notas: document.getElementById('f_notas').value.trim(),
+    presupuestoMeta: presupuestoMeta,
+    facturaMeta: facturaMeta
+  };
+
+  await dbSaveFactura(entry, isNew);
+
+  if(isNew){ data.push(entry); }
+  else { data[data.findIndex(x=>x.id===id)] = entry; }
+
+  closeForm();
+  render();
+}
+
+async function deleteEntry(){
+  const id = document.getElementById('f_id').value;
+  if(!confirm('¿Eliminar esta factura? También se borrarán sus archivos adjuntos.')) return;
+  const e = data.find(x=>x.id===id);
+  if(e){
+    if(e.presupuestoMeta && e.presupuestoMeta.path) await deleteAttachmentStorage(e.presupuestoMeta.path);
+    if(e.facturaMeta && e.facturaMeta.path) await deleteAttachmentStorage(e.facturaMeta.path);
+  }
+  await dbDeleteFactura(id);
+  data = data.filter(x=>x.id!==id);
+  closeForm();
+  render();
+}
+
+/* ======== Resumen empresa / cliente ======== */
+function openResumen(tipo){
+  const groups = {};
+  data.forEach(e=>{
+    const k = (tipo==='empresa' ? e.facturarcon : e.cliente) || 'Sin asignar';
+    if(!groups[k]) groups[k] = {total:0, pendiente:0, cobrado:0, count:0};
+    const importe = Number(e.importe)||0;
+    groups[k].total += importe;
+    groups[k].count += 1;
+    if(getEstado(e)==='cobrada') groups[k].cobrado += importe;
+    else groups[k].pendiente += importe;
+  });
+
+  let granTotal=0, granPendiente=0, granCobrado=0;
+  const rows = Object.keys(groups).sort((a,b)=>groups[b].total-groups[a].total).map(nombre=>{
+    const g = groups[nombre];
+    granTotal += g.total; granPendiente += g.pendiente; granCobrado += g.cobrado;
+    return `<tr>
+      <td>${nombre}${nombre==='Sin asignar' ? ' ⚠️' : ''}<br><span style="color:var(--ink-soft);font-weight:400;font-size:11.5px;">${g.count} factura${g.count!==1?'s':''}</span></td>
+      <td class="num">${fmtMoney(g.total)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('resumenTitle').textContent = tipo==='empresa' ? 'Resumen por empresa' : 'Resumen por cliente';
+  document.getElementById('resumenContent').innerHTML = `
+    <table class="resumen-table">
+      <thead><tr><th>${tipo==='empresa'?'Empresa':'Cliente'}</th><th style="text-align:right;">Facturado</th></tr></thead>
+      <tbody>
+        ${rows}
+        <tr class="total"><td>TOTAL CONJUNTO</td><td class="num">${fmtMoney(granTotal)}</td></tr>
+      </tbody>
+    </table>
+    <div class="meta-row" style="margin-top:14px;justify-content:space-between;">
+      <span><b>Pendiente:</b> ${fmtMoney(granPendiente)}</span>
+      <span><b>Cobrado:</b> ${fmtMoney(granCobrado)}</span>
+    </div>
+  `;
+  document.getElementById('overlayResumen').classList.add('show');
+}
+function closeResumen(){ document.getElementById('overlayResumen').classList.remove('show'); }
+document.getElementById('overlayResumen').addEventListener('click', function(e){ if(e.target===this) closeResumen(); });
+
+/* ======== Exportar Excel / PDF ======== */
+function exportExcel(){
+  try{
+  if(typeof XLSX === 'undefined'){ alert('No se ha podido cargar la librería de Excel. Comprueba tu conexión a internet e inténtalo de nuevo.'); return; }
+  const filas = data.map(e=>({
+    'Matrícula': e.matricula,
+    'Cliente': e.cliente,
+    'Facturar con': e.facturarcon || '',
+    'Nº Orden': e.orden || '',
+    'Nº Factura': e.numfactura || '',
+    'Nº FacturaE': e.facturae || '',
+    'Importe (€)': Number(e.importe)||0,
+    'Fecha Factura': e.fechafactura || '',
+    'Fecha Vencimiento': e.fechavencimiento || (e.fechafactura ? addDays(e.fechafactura, diasPagoForCliente(e.cliente)) : ''),
+    'Fecha Envío': e.fechaenvio || '',
+    'Fecha Cobro': e.fechacobro || '',
+    'Estado': getEstado(e),
+    'Días pendientes': getDiasPendientes(e) ?? '',
+    'Notas': e.notas || ''
+  }));
+  const wsFacturas = XLSX.utils.json_to_sheet(filas);
+
+  function resumenRows(tipo){
+    const groups = {};
+    data.forEach(e=>{
+      const k = (tipo==='empresa' ? e.facturarcon : e.cliente) || 'Sin asignar';
+      if(!groups[k]) groups[k] = {total:0, pendiente:0, cobrado:0, count:0};
+      const importe = Number(e.importe)||0;
+      groups[k].total += importe; groups[k].count++;
+      if(getEstado(e)==='cobrada') groups[k].cobrado += importe; else groups[k].pendiente += importe;
+    });
+    return Object.keys(groups).sort((a,b)=>groups[b].total-groups[a].total).map(n=>({
+      [tipo==='empresa'?'Empresa':'Cliente']: n,
+      'Nº Facturas': groups[n].count,
+      'Total Facturado (€)': groups[n].total,
+      'Pendiente (€)': groups[n].pendiente,
+      'Cobrado (€)': groups[n].cobrado
+    }));
+  }
+  const wsEmpresas = XLSX.utils.json_to_sheet(resumenRows('empresa'));
+  const wsClientes = XLSX.utils.json_to_sheet(resumenRows('cliente'));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsFacturas, 'Facturas');
+  XLSX.utils.book_append_sheet(wb, wsEmpresas, 'Resumen Empresas');
+  XLSX.utils.book_append_sheet(wb, wsClientes, 'Resumen Clientes');
+  XLSX.writeFile(wb, `seguimiento-cobros-${todayStr()}.xlsx`);
+  } catch(err){
+    console.error(err);
+    alert('Error al generar el Excel: ' + err.message);
+  }
+}
+
+function exportPDF(){
+  try{
+  if(typeof window.jspdf === 'undefined'){ alert('No se ha podido cargar la librería de PDF. Comprueba tu conexión a internet e inténtalo de nuevo.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  doc.setFontSize(14);
+  doc.text('Seguimiento de Cobros · Motor4 Automoción', 14, 14);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text('Generado: ' + new Date().toLocaleDateString('es-ES'), 14, 20);
+  doc.setTextColor(0);
+
+  const rows = data.map(e=>{
+    const venc = e.fechavencimiento || (e.fechafactura ? addDays(e.fechafactura, diasPagoForCliente(e.cliente)) : '');
+    return [
+      e.matricula, e.cliente, e.facturarcon||'-', e.numfactura||'-', e.facturae||'-',
+      fmtMoney(e.importe), fmtDate(e.fechafactura), fmtDate(venc),
+      fmtDate(e.fechaenvio), fmtDate(e.fechacobro), getEstado(e)
+    ];
+  });
+
+  doc.autoTable({
+    head: [['Matrícula','Cliente','Facturar con','Nº Factura','Nº FacturaE','Importe','F.Factura','F.Vencim.','F.Envío','F.Cobro','Estado']],
+    body: rows,
+    startY: 25,
+    styles:{fontSize:7, cellPadding:2},
+    headStyles:{fillColor:[28,27,25], textColor:255},
+    alternateRowStyles:{fillColor:[244,242,237]}
+  });
+
+  let pendiente=0, cobrado=0;
+  data.forEach(e=>{ if(getEstado(e)==='cobrada') cobrado += Number(e.importe)||0; else pendiente += Number(e.importe)||0; });
+  const finalY = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(10);
+  doc.text(`Total pendiente: ${fmtMoney(pendiente)}`, 14, finalY);
+  doc.text(`Total cobrado: ${fmtMoney(cobrado)}`, 90, finalY);
+
+  doc.save(`seguimiento-cobros-${todayStr()}.pdf`);
+  } catch(err){
+    console.error(err);
+    alert('Error al generar el PDF: ' + err.message);
+  }
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('filterEstado').addEventListener('change', render);
+document.getElementById('overlay').addEventListener('click', function(e){
+  if(e.target===this) closeForm();
+});
+
+/* ======== Arranque ======== */
+async function refrescarDatos(){
+  document.getElementById('list').innerHTML = '<div class="empty">Actualizando...</div>';
+  const [c, em, fa] = await Promise.all([fetchClientes(), fetchEmpresas(), fetchFacturas()]);
+  clientes = c; empresas = em; data = fa;
+  render();
+}
+async function initApp(){
+  document.getElementById('list').innerHTML = '<div class="empty">Cargando datos...</div>';
+  const [c, em, fa] = await Promise.all([fetchClientes(), fetchEmpresas(), fetchFacturas()]);
+  clientes = c; empresas = em; data = fa;
+
+  if(empresas.length === 0){
+    for(const nombre of ['Javier Escudero','Motor4 Automoción','Automoción y Compra Venta','David Escudero']){
+      await dbUpsertEmpresa(nombre);
+      empresas.push(nombre);
+    }
+  }
+  if(clientes.length === 0){
+    await dbUpsertCliente('Guardia Civil', 60);
+    clientes.push({nombre:'Guardia Civil', diasPago:60});
+  }
+  render();
+}
+
+if(localStorage.getItem('cobros_auth_ok') === '1'){
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  initApp();
+}
+</script>
+</body>
+</html>
